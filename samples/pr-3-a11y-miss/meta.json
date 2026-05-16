@@ -1,0 +1,5 @@
+{
+  "title": "Add task creation modal",
+  "description": "Modal dialog for creating new tasks from the dashboard. Includes title, due date, and priority.",
+  "source_url": "synthetic"
+}

@@ -1,0 +1,5 @@
+{
+  "title": "Add login endpoint with JWT auth",
+  "description": "First-pass implementation of POST /login that authenticates users and issues JWT tokens. Closes #42.",
+  "source_url": "synthetic"
+}

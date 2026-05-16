@@ -1,0 +1,5 @@
+{
+  "title": "Add user search with task counts",
+  "description": "Adds GET /api/users/search?q=... that returns matching users with their open task count for the dashboard widget.",
+  "source_url": "synthetic"
+}

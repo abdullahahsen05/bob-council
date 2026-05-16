@@ -1,0 +1,74 @@
+diff --git a/app.js b/app.js
+index 1a2b3c4..8f9a0b1 100644
+--- a/app.js
++++ b/app.js
+@@ -1,10 +1,13 @@
+ const express = require('express');
+ const app = express();
+ const port = process.env.PORT || 3000;
++const userRoutes = require('./routes/users');
+ 
+ // Middleware
+ app.use(express.json());
+ app.use(express.urlencoded({ extended: true }));
++
++app.use('/api/users', userRoutes);
+ 
+ // Basic health check
+ app.get('/health', (req, res) => {
+diff --git a/routes/users.js b/routes/users.js
+index 2c3d4e5..6f7g8h9 100644
+--- a/routes/users.js
++++ b/routes/users.js
+@@ -30,4 +30,48 @@ router.get('/:id', async (req, res) => {
+   }
+ });
+ 
++/**
++ * GET /api/users/search?q=searchTerm
++ * Search users by name or email and return with their open task counts
++ */
++router.get('/search', async (req, res) => {
++  try {
++    const { q } = req.query;
++    
++    if (!q) {
++      return res.status(400).json({ error: 'Search query parameter "q" is required' });
++    }
++
++    // Fetch all users from database
++    const usersResult = await pool.query('SELECT * FROM users');
++    const allUsers = usersResult.rows;
++
++    // Filter users in JavaScript
++    const matchingUsers = allUsers.filter(user => {
++      return user.name.toLowerCase().includes(q.toLowerCase()) || 
++             user.email.toLowerCase().includes(q.toLowerCase());
++    });
++
++    // Get task count for each user
++    const usersWithTaskCounts = [];
++    for (const user of matchingUsers) {
++      const taskCountResult = await pool.query(
++        'SELECT COUNT(*) FROM tasks WHERE user_id = $1 AND status = $2',
++        [user.id, 'open']
++      );
++      
++      usersWithTaskCounts.push({
++        id: user.id,
++        name: user.name,
++        email: user.email,
++        openTaskCount: parseInt(taskCountResult.rows[0].count)
++      });
++    }
++
++    const responseData = JSON.stringify(usersWithTaskCounts);
++    res.json(JSON.parse(responseData));
++  } catch (error) {
++    res.status(500).json({ error: 'Internal server error' });
++  }
++});
++
+ module.exports = router;
+
+# Made with Bob
