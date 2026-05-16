@@ -21,3 +21,4 @@ A live log of every Bob session in building Bob Council.
 | 2 | 2026-05-16T14:33:50.288Z | Plan | Design 7 custom mode specs | docs/modes-spec.md committed |
 | 3 | 2026-05-16T14:40:46.765Z | Code | Author 7 custom modes in custom_modes.yaml | 1 file with 7 modes |
 | 4 | 2026-05-16T14:54:12.623Z | Code | Orchestrator playbook + auto-load rule | orchestrator/council-playbook.md + .bob/rules-orchestrator/01-council.md |
+| 5 | 2026-05-16T14:58:32.875Z | Code | Generate 3 synthetic PR samples | 10 files in samples/, committed |
