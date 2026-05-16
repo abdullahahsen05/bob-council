@@ -122,7 +122,7 @@ async function loadWalkthrough(slug) {
     };
     
     // Update header
-    document.getElementById('pr-title').textContent = script.title;
+    document.getElementById('pr-title').textContent = state.script.title;
     updateVerdictPill();
     updateVoteTally();
     
