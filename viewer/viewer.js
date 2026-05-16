@@ -106,13 +106,14 @@ function showPlayer() {
 async function loadWalkthrough(slug) {
   try {
     // Load script, diff, and verdict in parallel
-    const [script, diffText, verdictText] = await Promise.all([
+    const [rawScript, diffText, verdictText] = await Promise.all([
       fetchJSON(`samples/${slug}/script.json`),
       fetchText(`../samples/${slug}/pr.diff`),
       fetchText(`../samples/${slug}/verdict.md`)
     ]);
     
-    state.script = script;
+    // Normalize script schema (handles both rich and simple formats)
+    state.script = normalizeScript(rawScript);
     state.parsedDiff = parseDiff(diffText);
     state.verdict = {
       recommendation: parseRecommendation(verdictText),
@@ -136,6 +137,44 @@ async function loadWalkthrough(slug) {
 }
 
 // ============================================================================
+// SCRIPT NORMALIZATION
+// ============================================================================
+
+function normalizeScript(raw) {
+  if (raw.scenes) {
+    // Rich schema — already in target shape
+    return {
+      title: raw.title,
+      prContext: raw.prContext,
+      scenes: raw.scenes.map(s => ({
+        narration: s.narration,
+        file: s.code.file,
+        startLine: s.code.startLine,
+        endLine: s.code.endLine,
+        highlight: s.code.highlight || [],
+        annotation: s.annotation || null
+      }))
+    };
+  }
+  if (raw.segments) {
+    // Simple schema — synthesize defaults
+    return {
+      title: raw.title,
+      prContext: null,
+      scenes: raw.segments.map(s => ({
+        narration: s.narration,
+        file: s.file,
+        startLine: s.startLine,
+        endLine: s.endLine,
+        highlight: [],          // no per-line highlight in simple schema
+        annotation: null         // no annotation in simple schema
+      }))
+    };
+  }
+  throw new Error("Unrecognized script.json schema — expected either 'scenes' or 'segments'");
+}
+
+// ============================================================================
 // DIFF PARSING
 // ============================================================================
 
@@ -149,14 +188,27 @@ function parseDiff(diffText) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // File header: +++ b/path/to/file
-    if (line.startsWith('+++ b/')) {
+    // File header: +++ b/path/to/file or +++ /dev/null
+    if (line.startsWith('+++ ')) {
       if (currentFile) {
         files.set(currentFile, { lines: currentLines, maxLine: afterLineNum });
       }
-      currentFile = line.substring(6); // Remove '+++ b/'
+      // Extract filename and normalize (remove a/ or b/ prefix)
+      let filename = line.substring(4).trim(); // Remove '+++ '
+      if (filename.startsWith('b/')) {
+        filename = filename.substring(2); // Remove 'b/'
+      } else if (filename === '/dev/null') {
+        filename = null; // New file will be set from --- line
+      }
+      currentFile = filename;
       currentLines = [];
       afterLineNum = 0;
+      continue;
+    }
+    
+    // Handle new files: --- /dev/null means the +++ line has the real filename
+    if (line.startsWith('--- /dev/null')) {
+      // Next line will be +++ b/filename
       continue;
     }
     
@@ -183,7 +235,7 @@ function parseDiff(diffText) {
         // Added line
         afterLineNum++;
         currentLines.push(line.substring(1)); // Remove '+'
-      } else {
+      } else if (line.startsWith(' ')) {
         // Context line (kept)
         afterLineNum++;
         currentLines.push(line.substring(1)); // Remove leading space
@@ -208,7 +260,7 @@ function renderScene(index) {
   if (!scene) return;
   
   // Update scene indicator
-  document.getElementById('scene-indicator').textContent = 
+  document.getElementById('scene-indicator').textContent =
     `${index + 1} / ${state.script.scenes.length}`;
   
   // Update progress bar
@@ -218,22 +270,27 @@ function renderScene(index) {
   // Update caption
   document.getElementById('caption-text').textContent = scene.narration;
   
-  // Update annotation
+  // Update annotation panel
+  const annotationPanel = document.getElementById('annotation-panel');
   if (scene.annotation) {
-    document.getElementById('annotation-severity').textContent = 
+    annotationPanel.style.display = 'flex';
+    document.getElementById('annotation-severity').textContent =
       scene.annotation.severity.toUpperCase();
-    document.getElementById('annotation-severity').className = 
+    document.getElementById('annotation-severity').className =
       `annotation-severity severity-${scene.annotation.severity}`;
-    document.getElementById('annotation-message').textContent = 
+    document.getElementById('annotation-message').textContent =
       scene.annotation.message;
+  } else {
+    // Hide annotation panel for simple schema scenes
+    annotationPanel.style.display = 'none';
   }
   
   // Update code panel
-  renderCode(scene.code);
+  renderCode(scene);
 }
 
-function renderCode(codeSpec) {
-  const { file, startLine, endLine, highlight } = codeSpec;
+function renderCode(scene) {
+  const { file, startLine, endLine, highlight } = scene;
   
   // Update file name
   document.getElementById('file-name').textContent = file;
