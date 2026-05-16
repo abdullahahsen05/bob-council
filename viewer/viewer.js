@@ -12,7 +12,8 @@ const state = {
   verdict: null,
   currentSceneIndex: 0,
   isPlaying: false,
-  utterance: null
+  utterance: null,
+  safetyTimeout: null
 };
 
 // ============================================================================
@@ -191,7 +192,7 @@ function parseDiff(diffText) {
     // File header: +++ b/path/to/file or +++ /dev/null
     if (line.startsWith('+++ ')) {
       if (currentFile) {
-        files.set(currentFile, { lines: currentLines, maxLine: afterLineNum });
+        files.set(currentFile, currentLines);
       }
       // Extract filename and normalize (remove a/ or b/ prefix)
       let filename = line.substring(4).trim(); // Remove '+++ '
@@ -216,7 +217,7 @@ function parseDiff(diffText) {
     if (line.startsWith('@@')) {
       const match = line.match(/\+(\d+)/);
       if (match) {
-        afterLineNum = parseInt(match[1], 10) - 1;
+        afterLineNum = parseInt(match[1], 10);
       }
       continue;
     }
@@ -226,26 +227,34 @@ function parseDiff(diffText) {
       continue;
     }
     
-    // Content lines
-    if (currentFile !== null) {
+    // Content lines - store with real line numbers
+    if (currentFile !== null && afterLineNum > 0) {
       if (line.startsWith('-')) {
-        // Removed line - skip in AFTER state
+        // Removed line - skip in AFTER state, don't increment line number
         continue;
       } else if (line.startsWith('+')) {
         // Added line
+        currentLines.push({
+          lineNumber: afterLineNum,
+          text: line.substring(1), // Remove '+'
+          isAdded: true
+        });
         afterLineNum++;
-        currentLines.push(line.substring(1)); // Remove '+'
       } else if (line.startsWith(' ')) {
         // Context line (kept)
+        currentLines.push({
+          lineNumber: afterLineNum,
+          text: line.substring(1), // Remove leading space
+          isAdded: false
+        });
         afterLineNum++;
-        currentLines.push(line.substring(1)); // Remove leading space
       }
     }
   }
   
   // Save last file
   if (currentFile) {
-    files.set(currentFile, { lines: currentLines, maxLine: afterLineNum });
+    files.set(currentFile, currentLines);
   }
   
   return files;
@@ -296,15 +305,24 @@ function renderCode(scene) {
   document.getElementById('file-name').textContent = file;
   
   // Get file content from parsed diff
-  const fileData = state.parsedDiff.get(file);
-  if (!fileData) {
+  const fileLines = state.parsedDiff.get(file);
+  if (!fileLines) {
     console.error(`File not found in diff: ${file}`);
     return;
   }
   
-  // Extract lines (1-based to 0-based indexing)
-  const lines = fileData.lines.slice(startLine - 1, endLine);
-  const codeText = lines.join('\n');
+  // Filter lines within the requested range
+  const relevantLines = fileLines.filter(
+    line => line.lineNumber >= startLine && line.lineNumber <= endLine
+  );
+  
+  if (relevantLines.length === 0) {
+    console.warn(`No lines found in range ${startLine}-${endLine} for ${file}`);
+    return;
+  }
+  
+  // Build code text
+  const codeText = relevantLines.map(line => line.text).join('\n');
   
   // Detect language from file extension
   const language = detectLanguage(file);
@@ -314,11 +332,17 @@ function renderCode(scene) {
   codeElement.textContent = codeText;
   codeElement.className = `language-${language}`;
   
+  // Store line mapping for highlighting
+  codeElement.dataset.lineMapping = JSON.stringify(
+    relevantLines.map(line => line.lineNumber)
+  );
+  codeElement.dataset.highlights = JSON.stringify(highlight || []);
+  
   // Apply syntax highlighting
   Prism.highlightElement(codeElement);
   
   // Apply line number highlighting
-  applyLineHighlights(startLine, highlight);
+  applyLineHighlights(relevantLines, highlight);
   
   // Fade in effect
   const codePanel = document.getElementById('code-panel');
@@ -345,43 +369,25 @@ function detectLanguage(filename) {
   return langMap[ext] || 'javascript';
 }
 
-function applyLineHighlights(startLine, highlightLines) {
+function applyLineHighlights(relevantLines, highlightLines) {
   if (!highlightLines || highlightLines.length === 0) return;
   
   // Wait for Prism to finish rendering line numbers
   setTimeout(() => {
     const lineNumberElements = document.querySelectorAll('.line-numbers-rows > span');
-    const codeLines = document.querySelectorAll('#code-content .token');
     
-    highlightLines.forEach(lineNum => {
-      const index = lineNum - startLine;
-      if (index >= 0 && index < lineNumberElements.length) {
-        // Highlight line number
-        lineNumberElements[index].classList.add('highlight-line');
-        
-        // Highlight code line - find the parent line
-        const codeElement = document.getElementById('code-content');
-        const allLines = codeElement.textContent.split('\n');
-        if (index < allLines.length) {
-          // Add a wrapper span for the highlighted line
-          // This is a simplified approach - in production you'd want more robust line tracking
-        }
-      }
+    // Build a map of real line numbers to display indices
+    const lineNumberMap = new Map();
+    relevantLines.forEach((line, index) => {
+      lineNumberMap.set(line.lineNumber, index);
     });
     
-    // Add highlight class to code lines
-    const pre = document.querySelector('#code-panel pre');
-    const codeContent = document.getElementById('code-content').textContent;
-    const lines = codeContent.split('\n');
-    
+    // Highlight the appropriate line number elements
     highlightLines.forEach(lineNum => {
-      const index = lineNum - startLine;
-      if (index >= 0 && index < lines.length) {
-        // Mark the line for CSS styling
-        const lineSpan = lineNumberElements[index];
-        if (lineSpan) {
-          lineSpan.setAttribute('data-highlight', 'true');
-        }
+      const displayIndex = lineNumberMap.get(lineNum);
+      if (displayIndex !== undefined && displayIndex < lineNumberElements.length) {
+        lineNumberElements[displayIndex].setAttribute('data-highlight', 'true');
+        lineNumberElements[displayIndex].classList.add('highlight-line');
       }
     });
   }, 100);
@@ -408,32 +414,66 @@ function pause() {
   document.getElementById('btn-play').style.display = 'inline-block';
   document.getElementById('btn-pause').style.display = 'none';
   
-  if (state.utterance) {
-    speechSynthesis.cancel();
+  // Cancel speech and clear safety timeout
+  speechSynthesis.cancel();
+  if (state.safetyTimeout) {
+    clearTimeout(state.safetyTimeout);
+    state.safetyTimeout = null;
   }
 }
 
 function previousScene() {
+  // Cancel current narration and timeout
+  speechSynthesis.cancel();
+  if (state.safetyTimeout) {
+    clearTimeout(state.safetyTimeout);
+    state.safetyTimeout = null;
+  }
+  
   if (state.currentSceneIndex > 0) {
     state.currentSceneIndex--;
     renderScene(state.currentSceneIndex);
     
     if (state.isPlaying) {
-      speechSynthesis.cancel();
       speakCurrentScene();
     }
   }
 }
 
 function nextScene() {
+  // Cancel current narration and timeout
+  speechSynthesis.cancel();
+  if (state.safetyTimeout) {
+    clearTimeout(state.safetyTimeout);
+    state.safetyTimeout = null;
+  }
+  
   if (state.currentSceneIndex < state.script.scenes.length - 1) {
     state.currentSceneIndex++;
     renderScene(state.currentSceneIndex);
     
     if (state.isPlaying) {
-      speechSynthesis.cancel();
       speakCurrentScene();
     }
+  } else {
+    // End of walkthrough
+    pause();
+  }
+}
+
+function advanceToNextScene() {
+  // Clear safety timeout since we're advancing
+  if (state.safetyTimeout) {
+    clearTimeout(state.safetyTimeout);
+    state.safetyTimeout = null;
+  }
+  
+  if (!state.isPlaying) return;
+  
+  if (state.currentSceneIndex < state.script.scenes.length - 1) {
+    state.currentSceneIndex++;
+    renderScene(state.currentSceneIndex);
+    speakCurrentScene();
   } else {
     // End of walkthrough
     pause();
@@ -448,23 +488,30 @@ function speakCurrentScene() {
   utterance.rate = 1.0;
   utterance.pitch = 1.0;
   
-  utterance.onend = () => {
-    if (state.isPlaying) {
-      // Auto-advance to next scene
-      if (state.currentSceneIndex < state.script.scenes.length - 1) {
-        nextScene();
-      } else {
-        pause();
-      }
-    }
+  // Estimate duration: 80ms per character, minimum 3 seconds
+  const estimatedDuration = Math.max(3000, scene.narration.length * 80);
+  
+  const advanceHandler = () => {
+    advanceToNextScene();
   };
   
+  utterance.onend = advanceHandler;
   utterance.onerror = (err) => {
     console.error('Speech synthesis error:', err);
+    advanceHandler(); // Still advance on error
   };
   
   state.utterance = utterance;
-  speechSynthesis.speak(utterance);
+  
+  // Set safety timeout in case onend doesn't fire
+  state.safetyTimeout = setTimeout(advanceHandler, estimatedDuration + 1000);
+  
+  try {
+    speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.error('Failed to speak:', err);
+    advanceHandler();
+  }
 }
 
 // ============================================================================

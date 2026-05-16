@@ -204,12 +204,14 @@ a:hover {
    ============================================================================ */
 
 .player {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .player-header {
+  flex-shrink: 0;
   padding: var(--spacing-lg);
   border-bottom: 1px solid var(--bg-tertiary);
   background: var(--bg-secondary);
@@ -279,6 +281,7 @@ a:hover {
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
   overflow: hidden;
+  min-height: 0;
 }
 
 /* ============================================================================
@@ -414,6 +417,7 @@ a:hover {
    ============================================================================ */
 
 .caption-bar {
+  flex-shrink: 0;
   padding: var(--spacing-lg);
   background: var(--bg-secondary);
   border-top: 1px solid var(--bg-tertiary);
@@ -434,6 +438,7 @@ a:hover {
    ============================================================================ */
 
 .player-controls {
+  flex-shrink: 0;
   padding: var(--spacing-lg);
   background: var(--bg-secondary);
   border-top: 1px solid var(--bg-tertiary);
