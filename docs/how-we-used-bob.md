@@ -36,3 +36,4 @@ A live log of every Bob session in building Bob Council.
 | 9 | 2026-05-16T15:45:10.747Z | (manual) | Capture Bobalytics screenshot showing 99.5% Bob Factor in repo | pitch/bobalytics-screenshot.png |
 | 10 | 2026-05-16T15:51:04.621Z | Code | Build viewer v1: landing page + walkthrough player with TTS narration | viewer/index.html (97 lines), viewer.js (467 lines), viewer.css (588 lines), updated deploy workflow |
 | 11 | 2026-05-16T16:08:48.073Z | Code | Fix viewer: normalize script.json schemas + correct diff parser filename keys | viewer.js patched (2 bugs fixed: schema normalization for segments vs scenes, filename key normalization in diff parser) |
+| 12 | 2026-05-16T16:30:07.534Z | Code | Fix 4 viewer bugs (line numbering, highlights, header overflow, auto-advance) | viewer.js + viewer.css patched (diff parser now preserves AFTER line numbers, highlights use real line numbers, header locked in viewport with flex layout, TTS auto-advance has safety timeout) |
