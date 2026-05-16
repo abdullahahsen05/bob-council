@@ -1,0 +1,1 @@
+Follow the playbook at orchestrator/council-playbook.md.
