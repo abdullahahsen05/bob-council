@@ -20,10 +20,17 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
       
+      - name: Build dist
+        run: |
+          mkdir -p dist/viewer
+          cp -r viewer/* dist/viewer/
+          mkdir -p dist/samples
+          cp -r samples/* dist/samples/
+      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './viewer'
+          path: 'dist'
       
       - name: Deploy to GitHub Pages
         id: deployment

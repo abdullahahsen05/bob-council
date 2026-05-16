@@ -1,1 +1,100 @@
-<!DOCTYPE html><title>Bob Director</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bob Council - Code Review Walkthroughs</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+  
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <!-- Landing Page (shown when no ?pr= param) -->
+  <div id="landing-page" class="landing-page">
+    <header class="landing-header">
+      <h1>🎭 Bob Council</h1>
+      <p class="subtitle">Multi-persona AI code review walkthroughs</p>
+    </header>
+    
+    <main class="landing-main">
+      <div class="walkthroughs-grid" id="walkthroughs-grid">
+        <!-- Cards will be dynamically inserted here -->
+      </div>
+    </main>
+    
+    <footer class="landing-footer">
+      <p>Built with <a href="https://bob.ibm.com" target="_blank">IBM Bob</a> • Orchestrator + 7 custom modes</p>
+    </footer>
+  </div>
+  
+  <!-- Player (shown when ?pr=<slug> param exists) -->
+  <div id="player" class="player" style="display: none;">
+    <header class="player-header">
+      <div class="header-top">
+        <a href="index.html" class="back-link">← Back to all walkthroughs</a>
+        <div class="verdict-pill" id="verdict-pill">LOADING</div>
+      </div>
+      <h1 class="pr-title" id="pr-title">Loading...</h1>
+      <div class="vote-tally" id="vote-tally">Loading...</div>
+    </header>
+    
+    <main class="player-main">
+      <div class="code-panel" id="code-panel">
+        <div class="code-header">
+          <span class="file-name" id="file-name">Loading...</span>
+        </div>
+        <pre class="line-numbers"><code class="language-javascript" id="code-content"></code></pre>
+      </div>
+      
+      <aside class="annotation-panel" id="annotation-panel">
+        <div class="annotation-card">
+          <div class="annotation-severity" id="annotation-severity">INFO</div>
+          <div class="annotation-message" id="annotation-message">Loading...</div>
+        </div>
+      </aside>
+    </main>
+    
+    <div class="caption-bar" id="caption-bar">
+      <p id="caption-text">Loading narration...</p>
+    </div>
+    
+    <footer class="player-controls">
+      <div class="controls-left">
+        <button id="btn-play" class="control-btn" title="Play">▶</button>
+        <button id="btn-pause" class="control-btn" style="display: none;" title="Pause">⏸</button>
+        <button id="btn-prev" class="control-btn" title="Previous scene">⏮</button>
+        <button id="btn-next" class="control-btn" title="Next scene">⏭</button>
+      </div>
+      
+      <div class="controls-center">
+        <span class="scene-indicator" id="scene-indicator">1 / 1</span>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+      
+      <div class="controls-right">
+        <!-- Reserved for future features -->
+      </div>
+    </footer>
+  </div>
+  
+  <!-- Prism.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  
+  <script src="viewer.js"></script>
+</body>
+</html>
