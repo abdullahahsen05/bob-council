@@ -1,0 +1,66 @@
+{
+  "title": "Code Review: Add user search with task counts",
+  "estimatedDurationSec": 85,
+  "segments": [
+    {
+      "file": "app.js",
+      "startLine": 1,
+      "endLine": 15,
+      "narration": "This PR adds a new user search endpoint for a dashboard widget. The change looks simple: just wiring up a new route."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 27,
+      "endLine": 37,
+      "narration": "Here's the new search endpoint. It accepts a query parameter and validates it. So far, nothing alarming."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 31,
+      "endLine": 31,
+      "narration": "But wait. The security auditor flagged this immediately: there's no authentication check. Anyone can call this endpoint."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 39,
+      "endLine": 47,
+      "narration": "Here's the first critical issue: a full table scan. We fetch ALL users from the database, then filter in JavaScript."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 40,
+      "endLine": 40,
+      "narration": "This query has no WHERE clause. With ten thousand users, we're transferring megabytes of data just to search for one name."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 49,
+      "endLine": 63,
+      "narration": "Now comes the N plus one query anti-pattern. For each matching user, we make a separate database call to count their tasks."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 52,
+      "endLine": 55,
+      "narration": "If fifty users match the search, that's fifty separate queries. The database connection pool will be exhausted under load."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 65,
+      "endLine": 66,
+      "narration": "The junior reviewer asked why we stringify then immediately parse the JSON. There's no reason: it just adds overhead."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 67,
+      "endLine": 69,
+      "narration": "Finally, the error handling is generic. When this times out at three AM, on-call engineers will have zero debugging information."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 31,
+      "endLine": 70,
+      "narration": "The council voted to block this PR. Three critical issues: no authentication, full table scan, and N plus one queries."
+    }
+  ]
+}
