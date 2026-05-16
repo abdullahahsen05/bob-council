@@ -34,3 +34,4 @@ A live log of every Bob session in building Bob Council.
 | 7 | 2026-05-16T13:45:10.747Z | Orchestrator | Council review of pr-2-perf-regression | verdict.md (BLOCK, 0.40) + script.json committed |
 | 8 | 2026-05-16T14:45:10.747Z | Orchestrator | Council review of pr-3-a11y-miss | verdict.md (BLOCK, 0.40, A11y solo-block) + script.json committed |
 | 9 | 2026-05-16T15:45:10.747Z | (manual) | Capture Bobalytics screenshot showing 99.5% Bob Factor in repo | pitch/bobalytics-screenshot.png |
+| 10 | 2026-05-16T15:51:04.621Z | Code | Build viewer v1: landing page + walkthrough player with TTS narration | viewer/index.html (97 lines), viewer.js (467 lines), viewer.css (588 lines), updated deploy workflow |
