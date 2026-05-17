@@ -25,9 +25,35 @@
     </header>
     
     <main class="landing-main">
-      <div class="walkthroughs-grid" id="walkthroughs-grid">
-        <!-- Cards will be dynamically inserted here -->
-      </div>
+      <!-- GitHub Repo Input Section -->
+      <section class="repo-input-section">
+        <h2 class="section-heading">Try it on your repo</h2>
+        <div class="input-row">
+          <input
+            type="text"
+            id="repo-url-input"
+            class="repo-input"
+            placeholder="https://github.com/your-org/your-repo"
+          />
+          <button id="fetch-prs-btn" class="fetch-btn">Fetch PRs</button>
+        </div>
+        
+        <!-- Pull Requests Panel (hidden by default) -->
+        <div id="pr-list-panel" class="pr-list-panel" style="display: none;">
+          <h3 class="pr-list-heading">Pull Requests for <span id="repo-url-display"></span></h3>
+          <div class="pr-rows">
+            <!-- PR rows will be inserted here by JavaScript -->
+          </div>
+        </div>
+      </section>
+      
+      <!-- Recent Walkthroughs Section -->
+      <section class="recent-walkthroughs-section">
+        <h2 class="section-heading">Recent Walkthroughs</h2>
+        <div class="walkthroughs-grid" id="walkthroughs-grid">
+          <!-- Cards will be dynamically inserted here -->
+        </div>
+      </section>
     </main>
     
     <footer class="landing-footer">
@@ -40,7 +66,10 @@
     <header class="player-header">
       <div class="header-top">
         <a href="index.html" class="back-link">← Back to all walkthroughs</a>
-        <div class="verdict-pill" id="verdict-pill">LOADING</div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <button id="btn-view-report" class="view-report-btn" title="View Full Report">📄 View Full Report</button>
+          <div class="verdict-pill" id="verdict-pill">LOADING</div>
+        </div>
       </div>
       <h1 class="pr-title" id="pr-title">Loading...</h1>
       <div class="vote-tally" id="vote-tally">Loading...</div>
@@ -58,6 +87,11 @@
         <div class="annotation-card">
           <div class="annotation-severity" id="annotation-severity">INFO</div>
           <div class="annotation-message" id="annotation-message">Loading...</div>
+          <div class="annotation-recommendation" id="annotation-recommendation" style="display: none;">
+            <div class="recommendation-divider"></div>
+            <div class="recommendation-label">Suggested Fix</div>
+            <div class="recommendation-text" id="recommendation-text"></div>
+          </div>
         </div>
       </aside>
     </main>

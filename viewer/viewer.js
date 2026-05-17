@@ -13,7 +13,8 @@ const state = {
   currentSceneIndex: 0,
   isPlaying: false,
   utterance: null,
-  safetyTimeout: null
+  safetyTimeout: null,
+  suppressOnEnd: false  // Made with Bob - guard against double-advance on manual navigation
 };
 
 // ============================================================================
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Landing page mode
     showLandingPage();
     loadWalkthroughsList();
+    initRepoInputSection();
   }
 });
 
@@ -90,6 +92,120 @@ function createWalkthroughCard(slug, meta, verdictText) {
 }
 
 // ============================================================================
+// REPO INPUT SECTION
+// ============================================================================
+
+function initRepoInputSection() {
+  const fetchBtn = document.getElementById('fetch-prs-btn');
+  const repoInput = document.getElementById('repo-url-input');
+  
+  fetchBtn.addEventListener('click', handleFetchPRs);
+  repoInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      handleFetchPRs();
+    }
+  });
+}
+
+function handleFetchPRs() {
+  const repoInput = document.getElementById('repo-url-input');
+  const repoUrl = repoInput.value.trim();
+  
+  // Only show PR list if input is non-empty
+  if (!repoUrl) {
+    return;
+  }
+  
+  // Update the display URL
+  document.getElementById('repo-url-display').textContent = repoUrl;
+  
+  // Render the mock PR list
+  renderMockPRList();
+  
+  // Show the PR list panel with fade-in
+  const prListPanel = document.getElementById('pr-list-panel');
+  prListPanel.style.display = 'block';
+}
+
+function renderMockPRList() {
+  const prRows = document.querySelector('.pr-rows');
+  
+  // Mock PR data
+  const mockPRs = [
+    {
+      title: 'Add login endpoint with JWT auth',
+      status: 'open',
+      walkthrough: 'pr-1-auth-bug',
+      isDemo: false
+    },
+    {
+      title: 'Add user search with task counts',
+      status: 'open',
+      walkthrough: 'pr-2-perf-regression',
+      isDemo: false
+    },
+    {
+      title: 'Refactor billing service for monthly cycles',
+      status: 'merged',
+      walkthrough: null,
+      isDemo: true
+    },
+    {
+      title: 'Implement dark mode toggle',
+      status: 'open',
+      walkthrough: null,
+      isDemo: true
+    },
+    {
+      title: 'Migrate Redis client to ioredis',
+      status: 'draft',
+      walkthrough: null,
+      isDemo: true
+    }
+  ];
+  
+  // Clear existing rows
+  prRows.innerHTML = '';
+  
+  // Create PR rows
+  mockPRs.forEach(pr => {
+    const row = document.createElement('div');
+    row.className = `pr-row ${pr.isDemo ? 'demo' : 'clickable'}`;
+    
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'pr-title-text';
+    titleDiv.textContent = pr.title;
+    
+    const statusGroup = document.createElement('div');
+    statusGroup.className = 'pr-status-group';
+    
+    const statusPill = document.createElement('span');
+    statusPill.className = `status-pill status-${pr.status}`;
+    statusPill.textContent = pr.status;
+    statusGroup.appendChild(statusPill);
+    
+    if (pr.isDemo) {
+      const demoPill = document.createElement('span');
+      demoPill.className = 'demo-pill';
+      demoPill.textContent = 'DEMO';
+      statusGroup.appendChild(demoPill);
+    }
+    
+    row.appendChild(titleDiv);
+    row.appendChild(statusGroup);
+    
+    // Add click handler for non-demo PRs
+    if (!pr.isDemo && pr.walkthrough) {
+      row.addEventListener('click', () => {
+        window.location.href = `?pr=${pr.walkthrough}`;
+      });
+    }
+    
+    prRows.appendChild(row);
+  });
+}
+
+// ============================================================================
 // PLAYER
 // ============================================================================
 
@@ -102,6 +218,9 @@ function showPlayer() {
   document.getElementById('btn-pause').addEventListener('click', pause);
   document.getElementById('btn-prev').addEventListener('click', previousScene);
   document.getElementById('btn-next').addEventListener('click', nextScene);
+  document.getElementById('btn-view-report').addEventListener('click', () => {
+    window.open(`report.html?pr=${state.prSlug}`, '_blank');
+  });
 }
 
 async function loadWalkthrough(slug) {
@@ -168,7 +287,8 @@ function normalizeScript(raw) {
         startLine: s.startLine,
         endLine: s.endLine,
         highlight: [],          // no per-line highlight in simple schema
-        annotation: null         // no annotation in simple schema
+        annotation: null,        // no annotation in simple schema
+        recommendation: s.recommendation || null  // pass through recommendation if present
       }))
     };
   }
@@ -281,6 +401,9 @@ function renderScene(index) {
   
   // Update annotation panel
   const annotationPanel = document.getElementById('annotation-panel');
+  const recommendationSection = document.getElementById('annotation-recommendation');
+  const recommendationText = document.getElementById('recommendation-text');
+  
   if (scene.annotation) {
     annotationPanel.style.display = 'flex';
     document.getElementById('annotation-severity').textContent =
@@ -289,8 +412,23 @@ function renderScene(index) {
       `annotation-severity severity-${scene.annotation.severity}`;
     document.getElementById('annotation-message').textContent =
       scene.annotation.message;
+    
+    // Update recommendation section if present
+    if (scene.recommendation) {
+      recommendationSection.style.display = 'block';
+      recommendationText.textContent = scene.recommendation;
+    } else {
+      recommendationSection.style.display = 'none';
+    }
+  } else if (scene.recommendation) {
+    // Show panel with just recommendation (no annotation)
+    annotationPanel.style.display = 'flex';
+    document.getElementById('annotation-severity').style.display = 'none';
+    document.getElementById('annotation-message').style.display = 'none';
+    recommendationSection.style.display = 'block';
+    recommendationText.textContent = scene.recommendation;
   } else {
-    // Hide annotation panel for simple schema scenes
+    // Hide annotation panel for simple schema scenes with no recommendation
     annotationPanel.style.display = 'none';
   }
   
@@ -299,7 +437,7 @@ function renderScene(index) {
 }
 
 function renderCode(scene) {
-  const { file, startLine, endLine, highlight } = scene;
+  const { file, startLine, endLine } = scene.code || scene;
   
   // Update file name
   document.getElementById('file-name').textContent = file;
@@ -332,17 +470,12 @@ function renderCode(scene) {
   codeElement.textContent = codeText;
   codeElement.className = `language-${language}`;
   
-  // Store line mapping for highlighting
-  codeElement.dataset.lineMapping = JSON.stringify(
-    relevantLines.map(line => line.lineNumber)
-  );
-  codeElement.dataset.highlights = JSON.stringify(highlight || []);
+  // Set data-start attribute for correct line numbering in gutter
+  const preElement = codeElement.parentElement;
+  preElement.setAttribute('data-start', String(relevantLines[0].lineNumber));
   
   // Apply syntax highlighting
   Prism.highlightElement(codeElement);
-  
-  // Apply line number highlighting
-  applyLineHighlights(relevantLines, highlight);
   
   // Fade in effect
   const codePanel = document.getElementById('code-panel');
@@ -367,30 +500,6 @@ function detectLanguage(filename) {
     'json': 'json'
   };
   return langMap[ext] || 'javascript';
-}
-
-function applyLineHighlights(relevantLines, highlightLines) {
-  if (!highlightLines || highlightLines.length === 0) return;
-  
-  // Wait for Prism to finish rendering line numbers
-  setTimeout(() => {
-    const lineNumberElements = document.querySelectorAll('.line-numbers-rows > span');
-    
-    // Build a map of real line numbers to display indices
-    const lineNumberMap = new Map();
-    relevantLines.forEach((line, index) => {
-      lineNumberMap.set(line.lineNumber, index);
-    });
-    
-    // Highlight the appropriate line number elements
-    highlightLines.forEach(lineNum => {
-      const displayIndex = lineNumberMap.get(lineNum);
-      if (displayIndex !== undefined && displayIndex < lineNumberElements.length) {
-        lineNumberElements[displayIndex].setAttribute('data-highlight', 'true');
-        lineNumberElements[displayIndex].classList.add('highlight-line');
-      }
-    });
-  }, 100);
 }
 
 // ============================================================================
@@ -423,6 +532,9 @@ function pause() {
 }
 
 function previousScene() {
+  // Made with Bob - guard against double-advance
+  state.suppressOnEnd = true;
+  
   // Cancel current narration and timeout
   speechSynthesis.cancel();
   if (state.safetyTimeout) {
@@ -441,6 +553,9 @@ function previousScene() {
 }
 
 function nextScene() {
+  // Made with Bob - guard against double-advance
+  state.suppressOnEnd = true;
+  
   // Cancel current narration and timeout
   speechSynthesis.cancel();
   if (state.safetyTimeout) {
@@ -462,6 +577,12 @@ function nextScene() {
 }
 
 function advanceToNextScene() {
+  // Made with Bob - check suppressOnEnd guard
+  if (state.suppressOnEnd) {
+    state.suppressOnEnd = false;
+    return;
+  }
+  
   // Clear safety timeout since we're advancing
   if (state.safetyTimeout) {
     clearTimeout(state.safetyTimeout);
@@ -483,6 +604,9 @@ function advanceToNextScene() {
 function speakCurrentScene() {
   const scene = state.script.scenes[state.currentSceneIndex];
   if (!scene) return;
+  
+  // Made with Bob - reset suppressOnEnd when starting new utterance
+  state.suppressOnEnd = false;
   
   const utterance = new SpeechSynthesisUtterance(scene.narration);
   utterance.rate = 1.0;

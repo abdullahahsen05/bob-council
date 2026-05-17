@@ -6,61 +6,71 @@
       "file": "app.js",
       "startLine": 1,
       "endLine": 15,
-      "narration": "This PR adds a new user search endpoint for a dashboard widget. The change looks simple: just wiring up a new route."
-    },
-    {
-      "file": "routes/users.js",
-      "startLine": 27,
-      "endLine": 37,
-      "narration": "Here's the new search endpoint. It accepts a query parameter and validates it. So far, nothing alarming."
+      "narration": "This PR adds a new user search endpoint for a dashboard widget. The change looks simple: just wiring up a new route.",
+      "recommendation": "Add authentication middleware before mounting the route: app.use('/api/users', authMiddleware, userRoutes)."
     },
     {
       "file": "routes/users.js",
       "startLine": 31,
-      "endLine": 31,
-      "narration": "But wait. The security auditor flagged this immediately: there's no authentication check. Anyone can call this endpoint."
+      "endLine": 41,
+      "narration": "Here's the new search endpoint. It accepts a query parameter and validates it. So far, nothing alarming.",
+      "recommendation": "Add authentication check at the start of the handler: if (!req.user) return res.status(401).json({ error: 'Unauthorized' })."
+    },
+    {
+      "file": "routes/users.js",
+      "startLine": 31,
+      "endLine": 36,
+      "narration": "But wait. The security auditor flagged this immediately: there's no authentication check. Anyone can call this endpoint.",
+      "recommendation": "Add authentication middleware to verify user session/token before allowing access to user data."
     },
     {
       "file": "routes/users.js",
       "startLine": 39,
       "endLine": 47,
-      "narration": "Here's the first critical issue: a full table scan. We fetch ALL users from the database, then filter in JavaScript."
+      "narration": "Here's the first critical issue: a full table scan. We fetch ALL users from the database, then filter in JavaScript.",
+      "recommendation": "Replace full table scan with SQL WHERE clause: SELECT id, name, email FROM users WHERE name ILIKE $1 OR email ILIKE $1, passing ['%' + q + '%']."
     },
     {
       "file": "routes/users.js",
-      "startLine": 40,
-      "endLine": 40,
-      "narration": "This query has no WHERE clause. With ten thousand users, we're transferring megabytes of data just to search for one name."
+      "startLine": 39,
+      "endLine": 44,
+      "narration": "This query has no WHERE clause. With ten thousand users, we're transferring megabytes of data just to search for one name.",
+      "recommendation": "Use database-side filtering with ILIKE: pool.query('SELECT * FROM users WHERE name ILIKE $1 OR email ILIKE $1', ['%' + q + '%'])."
     },
     {
       "file": "routes/users.js",
       "startLine": 49,
       "endLine": 63,
-      "narration": "Now comes the N plus one query anti-pattern. For each matching user, we make a separate database call to count their tasks."
+      "narration": "Now comes the N plus one query anti-pattern. For each matching user, we make a separate database call to count their tasks.",
+      "recommendation": "Use a single JOIN query: SELECT u.*, COUNT(t.id) as open_task_count FROM users u LEFT JOIN tasks t ON u.id = t.user_id AND t.status = 'open' WHERE (u.name ILIKE $1 OR u.email ILIKE $1) GROUP BY u.id."
     },
     {
       "file": "routes/users.js",
       "startLine": 52,
-      "endLine": 55,
-      "narration": "If fifty users match the search, that's fifty separate queries. The database connection pool will be exhausted under load."
+      "endLine": 57,
+      "narration": "If fifty users match the search, that's fifty separate queries. The database connection pool will be exhausted under load.",
+      "recommendation": "Replace N+1 pattern with single JOIN query to fetch all user task counts in one round-trip."
     },
     {
       "file": "routes/users.js",
       "startLine": 65,
       "endLine": 66,
-      "narration": "The junior reviewer asked why we stringify then immediately parse the JSON. There's no reason: it just adds overhead."
+      "narration": "The junior reviewer asked why we stringify then immediately parse the JSON. There's no reason: it just adds overhead.",
+      "recommendation": "Remove the unnecessary JSON.stringify/parse cycle. Just return res.json(usersWithTaskCounts) directly."
     },
     {
       "file": "routes/users.js",
       "startLine": 67,
       "endLine": 69,
-      "narration": "Finally, the error handling is generic. When this times out at three AM, on-call engineers will have zero debugging information."
+      "narration": "Finally, the error handling is generic. When this times out at three AM, on-call engineers will have zero debugging information.",
+      "recommendation": "Add comprehensive logging with error stack traces, query parameters, and timing: console.error('Search failed:', { query: q, error: error.stack })."
     },
     {
       "file": "routes/users.js",
       "startLine": 31,
       "endLine": 70,
-      "narration": "The council voted to block this PR. Three critical issues: no authentication, full table scan, and N plus one queries."
+      "narration": "The council voted to block this PR. Three critical issues: no authentication, full table scan, and N plus one queries.",
+      "recommendation": "Fix all three critical issues: add authentication, use SQL WHERE clause with ILIKE, and replace N+1 with JOIN query."
     }
   ]
 }

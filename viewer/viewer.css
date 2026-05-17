@@ -104,6 +104,200 @@ a:hover {
   width: 100%;
 }
 
+/* ============================================================================
+   REPO INPUT SECTION
+   ============================================================================ */
+
+.repo-input-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-heading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.input-row {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.repo-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 1rem;
+  font-family: var(--font-ui);
+  transition: border-color 0.2s;
+}
+
+.repo-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
+.repo-input::placeholder {
+  color: var(--text-muted);
+}
+
+.fetch-btn {
+  padding: 10px 18px;
+  background: #58a6ff;
+  color: #0f1419;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.fetch-btn:hover {
+  background: #79c0ff;
+  transform: scale(1.02);
+}
+
+.fetch-btn:active {
+  transform: scale(0.98);
+}
+
+/* PR List Panel */
+.pr-list-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 12px;
+  padding: var(--spacing-lg);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pr-list-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.pr-list-heading span {
+  color: #58a6ff;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+.pr-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.pr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 8px;
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+  gap: var(--spacing-md);
+}
+
+.pr-row.clickable {
+  cursor: pointer;
+}
+
+.pr-row.clickable:hover {
+  background: #2d333b;
+  border-color: #58a6ff;
+  transform: translateY(-2px);
+}
+
+.pr-row.demo {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pr-row.demo:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--bg-tertiary);
+  transform: none;
+}
+
+.pr-title-text {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pr-row.demo .pr-title-text {
+  color: var(--text-muted);
+}
+
+.pr-status-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.status-pill.status-open {
+  background: #238636;
+  color: #ffffff;
+}
+
+.status-pill.status-merged {
+  background: #8957e5;
+  color: #ffffff;
+}
+
+.status-pill.status-draft {
+  background: #6e7681;
+  color: #ffffff;
+}
+
+.demo-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #d29922;
+  color: #1c2128;
+}
+
+/* Recent Walkthroughs Section */
+.recent-walkthroughs-section {
+  margin-top: var(--spacing-xl);
+}
+
 .walkthroughs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
@@ -233,6 +427,24 @@ a:hover {
   color: var(--text-primary);
 }
 
+.view-report-btn {
+  padding: 0.5rem 1rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: var(--font-ui);
+  transition: all 0.2s;
+}
+
+.view-report-btn:hover {
+  background: var(--bg-secondary);
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
 .verdict-pill {
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -334,23 +546,9 @@ a:hover {
 .line-numbers-rows > span {
   display: block;
   color: var(--text-muted);
-}
-
-.line-numbers-rows > span[data-highlight="true"] {
-  background: var(--highlight-bg);
-  border-left: 3px solid var(--highlight-border);
-  padding-left: 0.5rem;
-  margin-left: -0.5rem;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-/* Highlighted lines */
-.highlight-line {
-  background: var(--highlight-bg) !important;
-  border-left: 3px solid var(--highlight-border) !important;
-  padding-left: 0.5rem !important;
-  margin-left: -0.5rem !important;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 /* ============================================================================
@@ -407,6 +605,31 @@ a:hover {
 }
 
 .annotation-message {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.annotation-recommendation {
+  margin-top: var(--spacing-md);
+}
+
+.recommendation-divider {
+  height: 1px;
+  background: #30363d;
+  margin: 12px 0;
+}
+
+.recommendation-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+
+.recommendation-text {
   font-size: 1rem;
   line-height: 1.6;
   color: var(--text-primary);
@@ -594,3 +817,103 @@ pre[class*="language-"] {
    ============================================================================ */
 
 /* Made with Bob */
+
+
+/* ============================================================================
+   PRINT STYLES FOR REPORT PAGE
+   ============================================================================ */
+
+@media print {
+  /* Reset to print-friendly colors */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide interactive elements */
+  .report-actions,
+  .back-link,
+  .btn-print {
+    display: none !important;
+  }
+
+  /* Optimize layout for print */
+  .report-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* Page breaks for reviewer cards */
+  .reviewer-card {
+    page-break-before: always;
+    page-break-inside: avoid;
+  }
+
+  .reviewer-card:first-of-type {
+    page-break-before: auto;
+  }
+
+  /* Avoid breaks inside code blocks and items */
+  pre,
+  .code-review-item {
+    page-break-inside: avoid;
+  }
+
+  /* Avoid breaks after headings */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+
+  /* Print-friendly backgrounds */
+  .report-header {
+    border-bottom: 2px solid #333 !important;
+  }
+
+  .executive-summary,
+  .reviewer-card,
+  .code-explanation,
+  .final-verdict-section {
+    background: #f5f5f5 !important;
+    border: 1px solid #ddd !important;
+    color: black !important;
+  }
+
+  .file-path-header {
+    background: #e0e0e0 !important;
+    border: 1px solid #ccc !important;
+    color: black !important;
+  }
+
+  /* Ensure monospace for code */
+  code, pre {
+    font-family: 'Courier New', Courier, monospace !important;
+    color: black !important;
+  }
+
+  /* Verdict pills for print */
+  .verdict-pill {
+    border: 2px solid black !important;
+    color: black !important;
+    background: white !important;
+  }
+
+  .verdict-pill.verdict-block::before {
+    content: "🚫 ";
+  }
+
+  .verdict-pill.verdict-approve::before,
+  .verdict-pill.verdict-ship::before {
+    content: "✓ ";
+  }
+
+  /* Ensure links are visible */
+  a {
+    color: black !important;
+    text-decoration: underline !important;
+  }
+
+  /* Line numbers in print */
+  .line-numbers-rows {
+    border-right: 1px solid #999 !important;
+  }
+}

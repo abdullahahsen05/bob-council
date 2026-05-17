@@ -1,119 +1,76 @@
 {
   "title": "Code Review: Add login endpoint with JWT auth",
-  "prContext": {
-    "title": "Add login endpoint with JWT auth",
-    "description": "First-pass implementation of POST /login that authenticates users and issues JWT tokens. Closes #42.",
-    "author": "Developer",
-    "files": ["app.js", "routes/auth.js"]
-  },
-  "scenes": [
+  "estimatedDurationSec": 85,
+  "segments": [
     {
-      "narration": "This PR adds a new login endpoint to authenticate users and issue JWT tokens. Let's see what the council found.",
-      "code": {
-        "file": "app.js",
-        "startLine": 1,
-        "endLine": 15,
-        "highlight": [9, 15]
-      },
-      "annotation": {
-        "severity": "info",
-        "message": "New authentication route added to Express app"
-      }
+      "file": "routes/auth.js",
+      "startLine": 1,
+      "endLine": 16,
+      "narration": "This PR adds a new login endpoint with JWT authentication. Let's start by looking at the setup: we have a database pool and JWT imports.",
+      "recommendation": "Move pool instantiation to a shared db.js module and import it. Never create pools inside route files."
     },
     {
-      "narration": "The new auth route creates its own database connection pool. This will cause problems at scale.",
-      "code": {
-        "file": "routes/auth.js",
-        "startLine": 25,
-        "endLine": 36,
-        "highlight": [30, 31, 32, 33, 34, 35]
-      },
-      "annotation": {
-        "severity": "major",
-        "message": "Per-route connection pool will exhaust resources"
-      }
+      "file": "routes/auth.js",
+      "startLine": 6,
+      "endLine": 12,
+      "narration": "Here's where the database pool is created. The performance and cost engineers flagged this: creating a new pool per request will exhaust connections under load.",
+      "recommendation": "Refactor database pool to singleton pattern with explicit connection limits. Create one shared pg.Pool in a db.js module and import it into routes."
     },
     {
-      "narration": "Here's the login endpoint. Notice line 51 where the email is concatenated directly into the SQL query.",
-      "code": {
-        "file": "routes/auth.js",
-        "startLine": 42,
-        "endLine": 56,
-        "highlight": [51]
-      },
-      "annotation": {
-        "severity": "critical",
-        "message": "SQL injection vulnerability - user input concatenated into query"
-      }
+      "file": "routes/auth.js",
+      "startLine": 18,
+      "endLine": 28,
+      "narration": "Now we reach the login handler. Notice line 27: the email is concatenated directly into the SQL query without parameterization.",
+      "recommendation": "Use parameterized queries: pool.query('SELECT * FROM users WHERE email = $1', [email]) instead of string concatenation."
     },
     {
-      "narration": "An attacker could send a malicious email like: admin' OR '1'='1 to bypass authentication entirely.",
-      "code": {
-        "file": "routes/auth.js",
-        "startLine": 50,
-        "endLine": 56,
-        "highlight": [51, 54, 55]
-      },
-      "annotation": {
-        "severity": "critical",
-        "message": "SQL injection allows arbitrary database access"
-      }
+      "file": "routes/auth.js",
+      "startLine": 26,
+      "endLine": 28,
+      "narration": "The security auditor flagged this as critical SQL injection. An attacker could use a payload like quote OR one equals one to bypass authentication entirely.",
+      "recommendation": "Replace string concatenation with parameterized queries: pool.query('SELECT * FROM users WHERE email = $1', [email])."
     },
     {
-      "narration": "Line 61 compares passwords in plaintext. User passwords should never be stored or compared without hashing.",
-      "code": {
-        "file": "routes/auth.js",
-        "startLine": 58,
-        "endLine": 63,
-        "highlight": [61]
-      },
-      "annotation": {
-        "severity": "critical",
-        "message": "Plaintext password comparison - use bcrypt or argon2"
-      }
+      "file": "routes/auth.js",
+      "startLine": 30,
+      "endLine": 39,
+      "narration": "Here's the second critical issue: line 37 compares passwords directly. This means passwords are stored in plaintext, not hashed.",
+      "recommendation": "Hash passwords with bcrypt on signup; use bcrypt.compare(password, user.password_hash) on login. Never store or compare raw passwords."
     },
     {
-      "narration": "Line 70 hardcodes the JWT secret as supersecret123. Anyone with source access can forge authentication tokens.",
-      "code": {
-        "file": "routes/auth.js",
-        "startLine": 65,
-        "endLine": 72,
-        "highlight": [70]
-      },
-      "annotation": {
-        "severity": "critical",
-        "message": "Hardcoded JWT secret - move to environment variables"
-      }
+      "file": "routes/auth.js",
+      "startLine": 36,
+      "endLine": 39,
+      "narration": "The security auditor and junior reviewer both caught this. If the database is compromised, all user credentials are exposed immediately.",
+      "recommendation": "Implement bcrypt or argon2 with proper salting. Hash on signup, compare with bcrypt.compare() on login."
     },
     {
-      "narration": "The error handler on line 74 provides no logging or context. Production debugging will be impossible.",
-      "code": {
-        "file": "routes/auth.js",
-        "startLine": 73,
-        "endLine": 76,
-        "highlight": [74]
-      },
-      "annotation": {
-        "severity": "major",
-        "message": "Zero observability - no logging for errors or auth attempts"
-      }
+      "file": "routes/auth.js",
+      "startLine": 41,
+      "endLine": 49,
+      "narration": "Now we generate the JWT token. Look at line 46: the secret is hardcoded as supersecret123.",
+      "recommendation": "Move JWT secret to process.env.JWT_SECRET; throw at startup if missing so it can't ship undefined."
     },
     {
-      "narration": "The council voted 3 to 2 to block this PR. Three critical security vulnerabilities make this unsuitable for production.",
-      "code": {
-        "file": "routes/auth.js",
-        "startLine": 42,
-        "endLine": 76,
-        "highlight": [51, 61, 70, 74]
-      },
-      "annotation": {
-        "severity": "critical",
-        "message": "Multiple critical issues: SQL injection, plaintext passwords, hardcoded secrets"
-      }
+      "file": "routes/auth.js",
+      "startLine": 46,
+      "endLine": 46,
+      "narration": "This hardcoded secret will be committed to version control. Anyone with code access can forge valid tokens. This must use an environment variable.",
+      "recommendation": "Use process.env.JWT_SECRET with cryptographically random value (minimum 256 bits). Validate at startup: if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET required')."
+    },
+    {
+      "file": "routes/auth.js",
+      "startLine": 49,
+      "endLine": 52,
+      "narration": "Finally, the error handling. Notice there's no logging anywhere: no authentication attempts, no failures, no error context.",
+      "recommendation": "Add structured logging for authentication attempts, failures, and errors. Log email (not password), timestamp, IP, and error stack traces."
+    },
+    {
+      "file": "routes/auth.js",
+      "startLine": 1,
+      "endLine": 52,
+      "narration": "The council voted to block this PR. Three critical security vulnerabilities: SQL injection, plaintext passwords, and hardcoded secrets make this unsuitable for production.",
+      "recommendation": "Fix all three critical issues before merge: parameterized queries, bcrypt password hashing, and environment variable for JWT secret."
     }
-  ],
-  "verdict": {
-    "decision": "BLOCK",
-    "summary": "Three critical security vulnerabilities create immediate exploit vectors: SQL injection allows arbitrary database queries, plaintext password comparison exposes credentials, and hardcoded JWT secret allows token forgery. Additionally, zero observability and per-route connection pools create operational risks. Required fixes: use parameterized queries, implement bcrypt hashing, move secrets to environment variables, add logging, and use shared connection pool."
-  }
+  ]
 }
