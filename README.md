@@ -4,6 +4,8 @@
 
 A demonstration of IBM Bob's Orchestrator mode coordinating 7 custom AI personas to conduct comprehensive PR reviews, then presenting findings through an interactive narrated walkthrough.
 
+> **📝 Build Documentation:** See [docs/how-we-used-bob.md](docs/how-we-used-bob.md) for the session-by-session build log, and [Exported BOB TASK sessions/](Exported%20BOB%20TASK%20sessions/) for complete raw Bob task transcripts showing every interaction.
+
 ---
 
 ## 🎯 What is Bob Council?
